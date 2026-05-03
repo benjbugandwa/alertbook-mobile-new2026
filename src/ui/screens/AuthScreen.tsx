@@ -11,7 +11,10 @@ export default function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
-  const setToken = useAuthStore(state => state.setToken);
+  const { setToken, setUser } = useAuthStore(state => ({ 
+    setToken: state.setToken, 
+    setUser: state.setUser 
+  }));
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -24,16 +27,18 @@ export default function AuthScreen() {
     try {
       // 1. Authentification
       const response = await axios.post(`${API_URL}/login`, { email, password });
-      const { token } = response.data;
+      const { token, user } = response.data;
 
-      // 2. Sauvegarde du token localement pour éviter de se reconnecter
+      // 2. Sauvegarde du token et des infos user localement
       await SecureStore.setItemAsync('user_token', token);
+      await SecureStore.setItemAsync('user_data', JSON.stringify(user));
 
       // 3. Téléchargement des données statiques offline (Provinces, etc.)
       setSyncStatus('Téléchargement des données hors-ligne... (Ceci peut prendre un moment)');
       await ReferenceDataSync.syncAll(token);
 
       // 4. Mise à jour du store (déclenche la navigation vers le tableau de bord)
+      setUser(user);
       setToken(token);
 
     } catch (error: any) {

@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } 
 import { Ionicons } from '@expo/vector-icons';
 import { IncidentRepository } from '../../../core/database/repositories/IncidentRepository';
 import { useIsFocused } from '@react-navigation/native';
+import useAuthStore from '../../../store/useAuthStore';
 
 export default function DashboardScreen({ navigation }: any) {
   const [stats, setStats] = useState({ pending: 0, sent: 0, failed: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const isFocused = useIsFocused();
+  const { user } = useAuthStore();
 
   const loadStats = async () => {
     try {
@@ -46,8 +48,9 @@ export default function DashboardScreen({ navigation }: any) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.header}>
-        <Text style={styles.greeting}>Bonjour,</Text>
-        <Text style={styles.subtitle}>Voici un résumé de vos incidents</Text>
+        <Text style={styles.greeting}>Bonjour, {user?.name || 'Utilisateur'}</Text>
+        <Text style={styles.subtitle}>{user?.organization || ''}</Text>
+        <Text style={[styles.subtitle, { marginTop: 15, fontSize: 14 }]}>Voici un résumé de vos incidents</Text>
       </View>
 
       <View style={styles.statsContainer}>

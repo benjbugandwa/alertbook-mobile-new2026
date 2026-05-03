@@ -53,7 +53,7 @@ function MainTabs() {
 
 export default function App() {
   const [isDbReady, setIsDbReady] = useState(false);
-  const { token, setToken } = useAuthStore();
+  const { token, setToken, setUser } = useAuthStore();
 
   useEffect(() => {
     // 1. Initialisation
@@ -61,7 +61,9 @@ export default function App() {
       try {
         await initDatabase();
         const storedToken = await SecureStore.getItemAsync('user_token');
-        if (storedToken) {
+        const storedUser = await SecureStore.getItemAsync('user_data');
+        if (storedToken && storedUser) {
+          setUser(JSON.parse(storedUser));
           setToken(storedToken);
         }
       } catch (e) {
