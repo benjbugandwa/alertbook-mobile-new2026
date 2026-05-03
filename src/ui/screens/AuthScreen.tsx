@@ -92,11 +92,11 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8', justifyContent: 'center', padding: 20 },
   logoContainer: { alignItems: 'center', marginBottom: 40 },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#1a56db' }, // Couleur AlertBook
+  title: { fontSize: 36, fontWeight: 'bold', color: '#0B4F8A' }, // Couleur AlertBook
   subtitle: { fontSize: 16, color: '#6b7280', marginTop: 5 },
   form: { backgroundColor: '#fff', padding: 20, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
   input: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#d1d5db', padding: 15, borderRadius: 8, marginBottom: 15, fontSize: 16 },
-  btn: { backgroundColor: '#1a56db', padding: 15, borderRadius: 8, alignItems: 'center' },
+  btn: { backgroundColor: '#0B4F8A', padding: 15, borderRadius: 8, alignItems: 'center' },
   btnDisabled: { backgroundColor: '#9ca3af' },
   btnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   statusText: { marginTop: 15, textAlign: 'center', color: '#4b5563', fontSize: 14, fontStyle: 'italic' }

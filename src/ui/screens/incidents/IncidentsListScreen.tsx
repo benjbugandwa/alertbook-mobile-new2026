@@ -75,7 +75,7 @@ export default function IncidentsListScreen({ route, navigation }: any) {
       <Checkbox 
         value={selectedIds.includes(item.id)} 
         onValueChange={() => toggleSelection(item.id)} 
-        color={selectedIds.includes(item.id) ? '#1a56db' : undefined}
+        color={selectedIds.includes(item.id) ? '#0B4F8A' : undefined}
       />
       <View style={styles.cardInfo}>
         <Text style={styles.codeText}>{item.code_incident}</Text>
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8' },
   header: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   countText: { fontWeight: 'bold', color: '#4b5563' },
-  selectAllText: { color: '#1a56db', fontWeight: '500' },
+  selectAllText: { color: '#0B4F8A', fontWeight: '500' },
   card: { flexDirection: 'row', backgroundColor: '#fff', padding: 15, marginHorizontal: 15, marginTop: 10, borderRadius: 10, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
   cardInfo: { marginLeft: 15, flex: 1 },
   codeText: { fontWeight: 'bold', fontSize: 16, color: '#111827', marginBottom: 4 },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', marginTop: 50 },
   emptyText: { color: '#9ca3af', marginTop: 15, fontSize: 16 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 15, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#e5e7eb' },
-  syncBtn: { backgroundColor: '#1a56db', padding: 15, borderRadius: 10, alignItems: 'center' },
+  syncBtn: { backgroundColor: '#0B4F8A', padding: 15, borderRadius: 10, alignItems: 'center' },
   syncBtnDisabled: { backgroundColor: '#9ca3af' },
   syncBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });

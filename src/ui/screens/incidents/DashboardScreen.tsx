@@ -30,16 +30,6 @@ export default function DashboardScreen({ navigation }: any) {
     }
   }, [isFocused]);
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
-          <Ionicons name="settings-outline" size={24} color="#111827" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
-
   const onRefresh = async () => {
     setRefreshing(true);
     await loadStats();
@@ -94,21 +84,13 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={() => navigation.navigate('IncidentForm')}
-      >
-        <Ionicons name="add" size={32} color="white" />
-        <Text style={styles.fabText}>Nouveau</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8' },
-  header: { padding: 25, backgroundColor: '#1a56db', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  header: { padding: 25, backgroundColor: '#0B4F8A', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
   greeting: { fontSize: 28, fontWeight: 'bold', color: 'white' },
   subtitle: { fontSize: 16, color: '#e5e7eb', marginTop: 5 },
   statsContainer: { padding: 20, marginTop: -15 },
@@ -129,22 +111,5 @@ const styles = StyleSheet.create({
   iconContainer: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' },
   statInfo: { marginLeft: 20 },
   statValue: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
-  statLabel: { fontSize: 14, color: '#6b7280' },
-  fab: { 
-    flexDirection: 'row',
-    alignSelf: 'center',
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    backgroundColor: '#1a56db', 
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30, 
-    marginTop: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 }
-  },
-  fabText: { fontSize: 18, color: 'white', fontWeight: 'bold', marginLeft: 10 }
+  statLabel: { fontSize: 14, color: '#6b7280' }
 });

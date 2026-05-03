@@ -4,6 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { getDb } from '../../../core/database/db';
 import { IncidentRepository } from '../../../core/database/repositories/IncidentRepository';
 import useSettingsStore from '../../../store/useSettingsStore';
@@ -133,8 +134,22 @@ export default function IncidentFormScreen({ navigation }: any) {
     setIsCameraOpen(false);
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.1,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const base64 = result.assets[0].base64;
+      setForm({ ...form, photo_url: `data:image/jpeg;base64,${base64}` });
+    }
+  };
+
   const handleSave = async () => {
-    if (!form.description_faits) {
+    if (!form.description_faits || form.description_faits.trim() === '') {
       return Alert.alert('Erreur', 'La description des faits est obligatoire.');
     }
 
@@ -297,7 +312,16 @@ export default function IncidentFormScreen({ navigation }: any) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Détails</Text>
         <Text style={styles.label}>Source de l'information</Text>
-        <TextInput style={styles.input} value={form.source_info} onChangeText={(val) => handleFieldChange('source_info', val)} placeholder="Optionnel" />
+        <View style={styles.pickerContainer}>
+          <Picker selectedValue={form.source_info} onValueChange={(val) => handleFieldChange('source_info', val)}>
+            <Picker.Item label="Sélectionnez..." value={null} />
+            <Picker.Item label="Population locale" value="Population locale" />
+            <Picker.Item label="Humanitaires" value="Humanitaires" />
+            <Picker.Item label="Autorités administratives" value="Autorités administratives" />
+            <Picker.Item label="Société civile" value="Société civile" />
+            <Picker.Item label="Autres" value="Autres" />
+          </Picker>
+        </View>
 
         <Text style={styles.label}>Description des faits *</Text>
         <TextInput 
@@ -319,9 +343,14 @@ export default function IncidentFormScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={[styles.btn, {backgroundColor: '#34495e'}]} onPress={() => setIsCameraOpen(true)}>
-            <Text style={styles.btnText}>📸 Prendre une photo</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <TouchableOpacity style={[styles.btn, {backgroundColor: '#34495e', flex: 1, marginRight: 5}]} onPress={() => setIsCameraOpen(true)}>
+              <Text style={styles.btnText}>📸 Prendre photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.btn, {backgroundColor: '#16a085', flex: 1, marginLeft: 5}]} onPress={pickImage}>
+              <Text style={styles.btnText}>🖼️ Galerie</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -334,7 +363,7 @@ export default function IncidentFormScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8', padding: 15 },
-  header: { fontSize: 24, fontWeight: 'bold', color: '#1a56db', marginBottom: 20 },
+  header: { fontSize: 24, fontWeight: 'bold', color: '#0B4F8A', marginBottom: 20 },
   section: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, elevation: 2 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#2c3e50', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#ecf0f1', paddingBottom: 5 },
   label: { fontSize: 14, fontWeight: 'bold', color: '#34495e', marginBottom: 5 },
