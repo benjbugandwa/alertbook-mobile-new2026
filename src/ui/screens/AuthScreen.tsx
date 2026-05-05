@@ -59,7 +59,7 @@ export default function AuthScreen() {
     >
       <View style={styles.logoContainer}>
         <Text style={styles.title}>AlertBook</Text>
-        <Text style={styles.subtitle}>Collecte d'incidents</Text>
+        <Text style={styles.subtitle}>Collecte d'alertes</Text>
       </View>
 
       <View style={styles.form}>
