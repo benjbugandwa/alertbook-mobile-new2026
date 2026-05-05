@@ -30,7 +30,7 @@ function MainTabs() {
           let iconName: keyof typeof Ionicons.glyphMap = 'help-circle';
           if (route.name === 'Accueil') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Nouveau') {
+          } else if (route.name === 'Saisir') {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
           } else if (route.name === 'Paramètres') {
             iconName = focused ? 'settings' : 'settings-outline';
@@ -45,7 +45,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Accueil" component={DashboardScreen} options={{ title: 'AlertBook' }} />
-      <Tab.Screen name="Nouveau" component={IncidentFormScreen} options={{ title: 'Saisir un incident' }} />
+      <Tab.Screen name="Saisir" component={IncidentFormScreen} options={{ title: 'Saisir une alerte' }} />
       <Tab.Screen name="Paramètres" component={SettingsScreen} options={{ title: 'Paramètres' }} />
     </Tab.Navigator>
   );
@@ -122,7 +122,16 @@ export default function App() {
               name="IncidentsList" 
               component={IncidentsListScreen} 
               options={{ 
-                title: 'Liste des incidents',
+                title: 'Liste des alertes',
+                headerStyle: { backgroundColor: '#0B4F8A' },
+                headerTintColor: '#fff',
+              }} 
+            />
+            <Stack.Screen 
+              name="IncidentForm" 
+              component={IncidentFormScreen} 
+              options={{ 
+                title: 'Alerte',
                 headerStyle: { backgroundColor: '#0B4F8A' },
                 headerTintColor: '#fff',
               }} 
