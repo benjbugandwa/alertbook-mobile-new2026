@@ -11,10 +11,8 @@ export default function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
-  const { setToken, setUser } = useAuthStore(state => ({ 
-    setToken: state.setToken, 
-    setUser: state.setUser 
-  }));
+  const setToken = useAuthStore(state => state.setToken);
+  const setUser = useAuthStore(state => state.setUser);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -26,7 +24,10 @@ export default function AuthScreen() {
 
     try {
       // 1. Authentification
-      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const response = await axios.post(`${API_URL}/login`, 
+        { email, password },
+        { headers: { 'Accept': 'application/json' } }
+      );
       const { token, user } = response.data;
 
       // 2. Sauvegarde du token et des infos user localement

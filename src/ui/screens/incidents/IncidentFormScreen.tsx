@@ -8,8 +8,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { getDb } from '../../../core/database/db';
 import { IncidentRepository } from '../../../core/database/repositories/IncidentRepository';
 import useSettingsStore from '../../../store/useSettingsStore';
+import useAuthStore from '../../../store/useAuthStore';
 
-export default function IncidentFormScreen({ navigation }: any) {
+
+export default function IncidentFormScreen({ route, navigation }: any) {
+  const incidentToEdit = route.params?.incident;
+  const mode = route.params?.mode || 'create'; // 'create', 'edit', 'view'
   // États des listes déroulantes
   const [provinces, setProvinces] = useState<any[]>([]);
   const [territoires, setTerritoires] = useState<any[]>([]);
@@ -26,25 +30,30 @@ export default function IncidentFormScreen({ navigation }: any) {
 
   // Valeurs du formulaire
   const { defaultProvinceCode } = useSettingsStore();
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.user_role === 'superadmin';
+  const initialProvince = isSuperAdmin ? defaultProvinceCode : user?.code_province;
+
   const [isSaving, setIsSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [form, setForm] = useState({
-    code_evenement: null,
-    severite: 'Moyenne',
-    auteur_presume: '',
-    code_province: defaultProvinceCode,
-    code_territoire: null,
-    code_chefferie: null,
-    code_groupement: null,
-    code_zonesante: null,
-    code_airesante: null,
-    localite: '',
-    description_faits: '',
-    source_info: '',
-    photo_url: '',
-    longitude: null as number | null,
-    latitude: null as number | null,
-    created_at: new Date(),
+    code_evenement: incidentToEdit?.code_evenement || null,
+    severite: incidentToEdit?.severite || 'Moyenne',
+    auteur_presume: incidentToEdit?.auteur_presume || '',
+    code_province: incidentToEdit?.code_province || initialProvince,
+
+    code_territoire: incidentToEdit?.code_territoire || null,
+    code_chefferie: incidentToEdit?.code_chefferie || null,
+    code_groupement: incidentToEdit?.code_groupement || null,
+    code_zonesante: incidentToEdit?.code_zonesante || null,
+    code_airesante: incidentToEdit?.code_airesante || null,
+    localite: incidentToEdit?.localite || '',
+    description_faits: incidentToEdit?.description_faits || '',
+    source_info: incidentToEdit?.source_info || '',
+    photo_url: incidentToEdit?.photo_url || '',
+    longitude: incidentToEdit?.longitude || null as number | null,
+    latitude: incidentToEdit?.latitude || null as number | null,
+    created_at: incidentToEdit ? new Date(incidentToEdit.created_at) : new Date(),
   });
 
   // Chargement initial (Provinces & Evénements)
@@ -57,15 +66,26 @@ export default function IncidentFormScreen({ navigation }: any) {
         setProvinces(provs);
         setEvenements(evts);
         
-        if (defaultProvinceCode) {
-            loadTerritoires(defaultProvinceCode);
-        }
+        // Si on édite, on charge les listes dépendantes
+        if (form.code_province) loadTerritoires(form.code_province);
+        if (form.code_territoire) loadChefferiesAndZones(form.code_territoire);
+        if (form.code_chefferie) loadGroupements(form.code_chefferie);
+        if (form.code_zonesante) loadAiresantes(form.code_zonesante);
+
       } catch (e) {
         console.error(e);
       }
     };
     loadInitialData();
-  }, []);
+  }, [initialProvince]);
+
+  // Synchronisation du formulaire quand la province initiale change (ex: chargement asynchrone du user)
+  useEffect(() => {
+    if (initialProvince && !form.code_province) {
+      setForm(prev => ({ ...prev, code_province: initialProvince }));
+    }
+  }, [initialProvince]);
+
 
   // Dépendances Territoire <- Province
   const loadTerritoires = async (provCode: string) => {
@@ -164,14 +184,23 @@ export default function IncidentFormScreen({ navigation }: any) {
       }
 
       // 2. Enregistrement en base locale
-      await IncidentRepository.create({
-        ...form,
-        created_at: form.created_at.toISOString(),
-        longitude: coords.longitude,
-        latitude: coords.latitude,
-      });
+      if (mode === 'edit' && incidentToEdit) {
+        await IncidentRepository.update(incidentToEdit.id, {
+          ...form,
+          created_at: form.created_at.toISOString(),
+          longitude: coords.longitude || form.longitude,
+          latitude: coords.latitude || form.latitude,
+        });
+      } else {
+        await IncidentRepository.create({
+          ...form,
+          created_at: form.created_at.toISOString(),
+          longitude: coords.longitude,
+          latitude: coords.latitude,
+        });
+      }
 
-      Alert.alert('Succès', 'Incident sauvegardé hors-ligne avec succès !', [
+      Alert.alert('Succès', `Alerte ${mode === 'edit' ? 'modifiée' : 'sauvegardée'} hors-ligne avec succès !`, [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (e) {
@@ -209,13 +238,21 @@ export default function IncidentFormScreen({ navigation }: any) {
     );
   }
 
+  const isViewMode = mode === 'view';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.header}>Nouvel Incident</Text>
+      <Text style={styles.header}>
+        {mode === 'view' ? 'Détails de l\'Alerte' : mode === 'edit' ? 'Modifier l\'Alerte' : 'Nouvelle Alerte'}
+      </Text>
 
       <View style={styles.section}>
-        <Text style={styles.label}>Date de l'incident *</Text>
-        <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+        <Text style={styles.label}>Date de l'alerte *</Text>
+        <TouchableOpacity 
+            style={[styles.input, isViewMode && styles.disabledInput]} 
+            onPress={() => !isViewMode && setShowDatePicker(true)}
+            disabled={isViewMode}
+        >
           <Text>{form.created_at.toLocaleDateString()}</Text>
         </TouchableOpacity>
         {showDatePicker && (
@@ -234,16 +271,24 @@ export default function IncidentFormScreen({ navigation }: any) {
         )}
 
         <Text style={styles.label}>Événement</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.code_evenement} onValueChange={(val) => handleFieldChange('code_evenement', val)}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.code_evenement} 
+            onValueChange={(val) => handleFieldChange('code_evenement', val)}
+            enabled={!isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             {evenements.map(e => <Picker.Item key={e.code_evenement} label={e.nom_evenement} value={e.code_evenement} />)}
           </Picker>
         </View>
 
         <Text style={styles.label}>Sévérité</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.severite} onValueChange={(val) => handleFieldChange('severite', val)}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.severite} 
+            onValueChange={(val) => handleFieldChange('severite', val)}
+            enabled={!isViewMode}
+          >
             <Picker.Item label="Faible" value="Faible" />
             <Picker.Item label="Moyenne" value="Moyenne" />
             <Picker.Item label="Élevée" value="Élevée" />
@@ -251,69 +296,109 @@ export default function IncidentFormScreen({ navigation }: any) {
           </Picker>
         </View>
 
-        <Text style={styles.label}>Auteur présumé</Text>
-        <TextInput style={styles.input} value={form.auteur_presume} onChangeText={(val) => handleFieldChange('auteur_presume', val)} placeholder="Optionnel" />
+        <TextInput 
+            style={[styles.input, isViewMode && styles.disabledInput]} 
+            value={form.auteur_presume} 
+            onChangeText={(val) => handleFieldChange('auteur_presume', val)} 
+            placeholder="Optionnel" 
+            editable={!isViewMode}
+        />
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Localisation</Text>
         <Text style={styles.label}>Province</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.code_province} onValueChange={(val) => handleFieldChange('code_province', val)}>
+        <View style={[styles.pickerContainer, !isSuperAdmin && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.code_province} 
+            onValueChange={(val) => handleFieldChange('code_province', val)}
+            enabled={isSuperAdmin && !isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             {provinces.map(p => <Picker.Item key={p.code_province} label={p.nom_province} value={p.code_province} />)}
           </Picker>
         </View>
 
+
         <Text style={styles.label}>Territoire</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.code_territoire} onValueChange={(val) => handleFieldChange('code_territoire', val)} enabled={territoires.length > 0}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.code_territoire} 
+            onValueChange={(val) => handleFieldChange('code_territoire', val)} 
+            enabled={territoires.length > 0 && !isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             {territoires.map(t => <Picker.Item key={t.code_territoire} label={t.nom_territoire} value={t.code_territoire} />)}
           </Picker>
         </View>
 
         <Text style={styles.label}>Zone de Santé</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.code_zonesante} onValueChange={(val) => handleFieldChange('code_zonesante', val)} enabled={zonesantes.length > 0}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.code_zonesante} 
+            onValueChange={(val) => handleFieldChange('code_zonesante', val)} 
+            enabled={zonesantes.length > 0 && !isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             {zonesantes.map(z => <Picker.Item key={z.code_zonesante} label={z.nom_zonesante} value={z.code_zonesante} />)}
           </Picker>
         </View>
 
         <Text style={styles.label}>Aire de Santé</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.code_airesante} onValueChange={(val) => handleFieldChange('code_airesante', val)} enabled={airesantes.length > 0}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.code_airesante} 
+            onValueChange={(val) => handleFieldChange('code_airesante', val)} 
+            enabled={airesantes.length > 0 && !isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             {airesantes.map(a => <Picker.Item key={a.code_airesante} label={a.nom_airesante} value={a.code_airesante} />)}
           </Picker>
         </View>
 
         <Text style={styles.label}>Chefferie</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.code_chefferie} onValueChange={(val) => handleFieldChange('code_chefferie', val)} enabled={chefferies.length > 0}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.code_chefferie} 
+            onValueChange={(val) => handleFieldChange('code_chefferie', val)} 
+            enabled={chefferies.length > 0 && !isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             {chefferies.map(c => <Picker.Item key={c.code_chefferie} label={c.nom_chefferie} value={c.code_chefferie} />)}
           </Picker>
         </View>
 
         <Text style={styles.label}>Groupement</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.code_groupement} onValueChange={(val) => handleFieldChange('code_groupement', val)} enabled={groupements.length > 0}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.code_groupement} 
+            onValueChange={(val) => handleFieldChange('code_groupement', val)} 
+            enabled={groupements.length > 0 && !isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             {groupements.map(g => <Picker.Item key={g.code_groupement} label={g.nom_groupement} value={g.code_groupement} />)}
           </Picker>
         </View>
 
         <Text style={styles.label}>Localité / Adresse précise</Text>
-        <TextInput style={styles.input} value={form.localite} onChangeText={(val) => handleFieldChange('localite', val)} placeholder="Optionnel" />
+        <TextInput 
+            style={[styles.input, isViewMode && styles.disabledInput]} 
+            value={form.localite} 
+            onChangeText={(val) => handleFieldChange('localite', val)} 
+            placeholder="Optionnel" 
+            editable={!isViewMode}
+        />
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Détails</Text>
         <Text style={styles.label}>Source de l'information</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={form.source_info} onValueChange={(val) => handleFieldChange('source_info', val)}>
+        <View style={[styles.pickerContainer, isViewMode && styles.disabledPicker]}>
+          <Picker 
+            selectedValue={form.source_info} 
+            onValueChange={(val) => handleFieldChange('source_info', val)}
+            enabled={!isViewMode}
+          >
             <Picker.Item label="Sélectionnez..." value={null} />
             <Picker.Item label="Population locale" value="Population locale" />
             <Picker.Item label="Humanitaires" value="Humanitaires" />
@@ -325,11 +410,12 @@ export default function IncidentFormScreen({ navigation }: any) {
 
         <Text style={styles.label}>Description des faits *</Text>
         <TextInput 
-          style={[styles.input, { height: 100, textAlignVertical: 'top' }]} 
+          style={[styles.input, { height: 100, textAlignVertical: 'top' }, isViewMode && styles.disabledInput]} 
           value={form.description_faits} 
           onChangeText={(val) => handleFieldChange('description_faits', val)} 
-          placeholder="Décrivez l'incident..." 
+          placeholder="Décrivez l'alerte..." 
           multiline 
+          editable={!isViewMode}
         />
       </View>
 
@@ -338,25 +424,31 @@ export default function IncidentFormScreen({ navigation }: any) {
         {form.photo_url ? (
           <View style={{alignItems: 'center'}}>
             <Image source={{ uri: form.photo_url }} style={styles.previewImage} />
-            <TouchableOpacity style={[styles.btn, {backgroundColor: '#e74c3c', marginTop: 10}]} onPress={() => handleFieldChange('photo_url', '')}>
-              <Text style={styles.btnText}>Supprimer la photo</Text>
-            </TouchableOpacity>
+            {!isViewMode && (
+              <TouchableOpacity style={[styles.btn, {backgroundColor: '#e74c3c', marginTop: 10}]} onPress={() => handleFieldChange('photo_url', '')}>
+                <Text style={styles.btnText}>Supprimer la photo</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <TouchableOpacity style={[styles.btn, {backgroundColor: '#34495e', flex: 1, marginRight: 5}]} onPress={() => setIsCameraOpen(true)}>
-              <Text style={styles.btnText}>📸 Prendre photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, {backgroundColor: '#16a085', flex: 1, marginLeft: 5}]} onPress={pickImage}>
-              <Text style={styles.btnText}>🖼️ Galerie</Text>
-            </TouchableOpacity>
-          </View>
+          !isViewMode && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <TouchableOpacity style={[styles.btn, {backgroundColor: '#34495e', flex: 1, marginRight: 5}]} onPress={() => setIsCameraOpen(true)}>
+                <Text style={styles.btnText}>📸 Prendre photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, {backgroundColor: '#16a085', flex: 1, marginLeft: 5}]} onPress={pickImage}>
+                <Text style={styles.btnText}>🖼️ Galerie</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
       </View>
 
-      <TouchableOpacity style={[styles.saveBtn, isSaving && {backgroundColor:'#95a5a6'}]} onPress={handleSave} disabled={isSaving}>
-        {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>💾 Sauvegarder (GPS auto)</Text>}
-      </TouchableOpacity>
+      {!isViewMode && (
+        <TouchableOpacity style={[styles.saveBtn, isSaving && {backgroundColor:'#95a5a6'}]} onPress={handleSave} disabled={isSaving}>
+          {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>💾 Sauvegarder (GPS auto)</Text>}
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
@@ -382,5 +474,8 @@ const styles = StyleSheet.create({
   captureBtn: { backgroundColor: '#fff', width: 70, height: 70, borderRadius: 35, justifyContent: 'center', alignItems: 'center' },
   captureText: { color: '#000', fontWeight: 'bold' },
   cancelCameraBtn: { backgroundColor: 'red', padding: 15, borderRadius: 8 },
-  cancelText: { color: '#fff', fontWeight: 'bold' }
+  cancelText: { color: '#fff', fontWeight: 'bold' },
+  disabledPicker: { backgroundColor: '#e5e7eb', opacity: 0.7 },
+  disabledInput: { backgroundColor: '#f3f4f6', color: '#6b7280' }
 });
+

@@ -6,7 +6,10 @@ export class ReferenceDataSync {
   static async syncAll(token: string) {
     try {
       const response = await axios.get(`${API_URL}/sync/reference-data`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
       });
 
       const data = response.data;

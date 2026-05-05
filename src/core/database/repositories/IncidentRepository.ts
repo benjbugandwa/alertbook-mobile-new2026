@@ -39,6 +39,30 @@ export class IncidentRepository {
     return await db.getAllAsync<any>('SELECT * FROM incidents WHERE sync_status = ? ORDER BY created_at DESC', [status]);
   }
 
+  static async update(id: string, incidentData: any) {
+    const db = getDb();
+    await db.runAsync(
+      `UPDATE incidents SET 
+        severite = ?, auteur_presume = ?, code_province = ?, code_territoire = ?, 
+        code_chefferie = ?, code_groupement = ?, code_zonesante = ?, code_airesante = ?, 
+        localite = ?, description_faits = ?, source_info = ?, code_evenement = ?, 
+        photo_url = ?, sync_status = 'PENDING'
+      WHERE id = ?`,
+      [
+        incidentData.severite, incidentData.auteur_presume, incidentData.code_province,
+        incidentData.code_territoire, incidentData.code_chefferie, incidentData.code_groupement,
+        incidentData.code_zonesante, incidentData.code_airesante, incidentData.localite,
+        incidentData.description_faits, incidentData.source_info, incidentData.code_evenement,
+        incidentData.photo_url, id
+      ]
+    );
+  }
+
+  static async deleteById(id: string) {
+    const db = getDb();
+    await db.runAsync('DELETE FROM incidents WHERE id = ?', [id]);
+  }
+
   static async updateSyncStatus(ids: string[], newStatus: 'PENDING' | 'SENT' | 'FAILED') {
     if (ids.length === 0) return;
     const db = getDb();

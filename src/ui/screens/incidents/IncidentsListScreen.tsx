@@ -10,11 +10,12 @@ import { useIsFocused } from '@react-navigation/native';
 export default function IncidentsListScreen({ route, navigation }: any) {
   // Par défaut, si on n'a pas de paramètres, on montre les PENDING
   const statusFilter = route.params?.status || 'PENDING';
-  const title = route.params?.title || 'Incidents en attente';
+  const title = route.params?.title || 'Alertes en attente';
 
   const [incidents, setIncidents] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   
   const token = useAuthStore((state) => state.token);
   const isFocused = useIsFocused();
@@ -55,22 +56,45 @@ export default function IncidentsListScreen({ route, navigation }: any) {
   };
 
   const handleSync = async () => {
-    if (selectedIds.length === 0) return Alert.alert('Attention', 'Sélectionnez au moins un incident');
+    if (selectedIds.length === 0) return Alert.alert('Attention', 'Sélectionnez au moins une alerte');
     
     setIsSyncing(true);
-    const successCount = await SyncEngine.syncSelectedIncidents(selectedIds, token || '');
+    setSyncProgress({ current: 0, total: selectedIds.length });
+    
+    const successCount = await SyncEngine.syncSelectedIncidents(
+      selectedIds, 
+      token || '', 
+      (current, total) => setSyncProgress({ current, total })
+    );
     setIsSyncing(false);
     
     setSelectedIds([]);
     await loadIncidents();
-    Alert.alert('Résultat', `${successCount} incidents sur ${selectedIds.length} ont été synchronisés avec succès.`);
+    Alert.alert('Résultat', `${successCount} alerte(s) sur ${selectedIds.length} ont été synchronisées avec succès.`);
+  };
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Confirmation',
+      'Voulez-vous vraiment supprimer cette alerte ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { 
+          text: 'Supprimer', 
+          style: 'destructive', 
+          onPress: async () => {
+            await IncidentRepository.deleteById(id);
+            loadIncidents();
+          } 
+        }
+      ]
+    );
   };
 
   const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={styles.card} 
-      onPress={() => toggleSelection(item.id)} // Sélection au clic sur la carte
-      // navigation.navigate('IncidentDetail', { id: item.id }) // Si on veut voir le détail
+      onPress={() => navigation.navigate('IncidentForm', { incident: item, mode: statusFilter === 'SENT' ? 'view' : 'edit' })}
     >
       <Checkbox 
         value={selectedIds.includes(item.id)} 
@@ -86,7 +110,14 @@ export default function IncidentsListScreen({ route, navigation }: any) {
       </View>
       {/* Icône d'état */}
       {statusFilter === 'SENT' && <Ionicons name="checkmark-circle" size={24} color="#10b981" />}
-      {statusFilter === 'FAILED' && <Ionicons name="close-circle" size={24} color="#ef4444" />}
+      {statusFilter === 'FAILED' && (
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity onPress={() => handleDelete(item.id)} style={{marginRight: 10}}>
+            <Ionicons name="trash-outline" size={24} color="#ef4444" />
+          </TouchableOpacity>
+          <Ionicons name="close-circle" size={24} color="#ef4444" />
+        </View>
+      )}
       {statusFilter === 'PENDING' && <Ionicons name="time" size={24} color="#f59e0b" />}
     </TouchableOpacity>
   );
@@ -94,7 +125,7 @@ export default function IncidentsListScreen({ route, navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.countText}>{incidents.length} incident(s) trouvé(s)</Text>
+        <Text style={styles.countText}>{incidents.length} alerte(s) trouvée(s)</Text>
         {incidents.length > 0 && (statusFilter === 'PENDING' || statusFilter === 'FAILED') && (
           <TouchableOpacity onPress={selectAll}>
             <Text style={styles.selectAllText}>
@@ -112,7 +143,7 @@ export default function IncidentsListScreen({ route, navigation }: any) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="folder-open-outline" size={60} color="#cbd5e1" />
-            <Text style={styles.emptyText}>Aucun incident dans cette catégorie.</Text>
+            <Text style={styles.emptyText}>Aucune alerte dans cette catégorie.</Text>
           </View>
         }
       />
@@ -125,7 +156,12 @@ export default function IncidentsListScreen({ route, navigation }: any) {
             disabled={isSyncing || selectedIds.length === 0}
           >
             {isSyncing ? (
-              <ActivityIndicator color="#fff" />
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <ActivityIndicator color="#fff" />
+                <Text style={[styles.syncBtnText, {marginLeft: 10}]}>
+                  Envoi... {syncProgress.current}/{syncProgress.total} ({Math.round((syncProgress.current / syncProgress.total) * 100)}%)
+                </Text>
+              </View>
             ) : (
               <Text style={styles.syncBtnText}>
                 <Ionicons name="cloud-upload-outline" size={18} /> Envoyer ({selectedIds.length})

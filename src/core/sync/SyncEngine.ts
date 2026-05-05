@@ -7,7 +7,11 @@ import * as SecureStore from 'expo-secure-store';
 import NetInfo from '@react-native-community/netinfo';
 
 export class SyncEngine {
-  static async syncSelectedIncidents(incidentIds: string[], token: string) {
+  static async syncSelectedIncidents(
+    incidentIds: string[], 
+    token: string, 
+    onProgress?: (current: number, total: number) => void
+  ) {
     // 1. Get current location for all synced incidents (if not already recorded)
     let locationCoords = { longitude: 0, latitude: 0 };
     try {
@@ -34,7 +38,10 @@ export class SyncEngine {
 
         // Send to Laravel API
         await axios.post(`${API_URL}/incidents`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
         });
 
         // 3. Mark as SENT on success
@@ -58,6 +65,10 @@ export class SyncEngine {
             console.error('Aucune réponse du serveur (problème réseau ou timeout, vérifier l\'IP et si le serveur tourne).');
           }
           await IncidentRepository.updateSyncStatus([incident.id], 'FAILED');
+        }
+        
+        if (onProgress) {
+          onProgress(successCount, incidentsToSync.length);
         }
     }
     return successCount;

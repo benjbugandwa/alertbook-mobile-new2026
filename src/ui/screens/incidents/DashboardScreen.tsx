@@ -50,12 +50,12 @@ export default function DashboardScreen({ navigation }: any) {
       <View style={styles.header}>
         <Text style={styles.greeting}>Bonjour, {user?.name || 'Utilisateur'}</Text>
         <Text style={styles.subtitle}>{user?.organization || ''}</Text>
-        <Text style={[styles.subtitle, { marginTop: 15, fontSize: 14 }]}>Voici un résumé de vos incidents</Text>
+        <Text style={[styles.subtitle, { marginTop: 15, fontSize: 14 }]}>Voici un résumé de vos alertes</Text>
       </View>
 
       <View style={styles.statsContainer}>
         {/* En attente */}
-        <TouchableOpacity style={[styles.statCard, { borderLeftColor: '#f59e0b' }]} onPress={() => navigateToList('PENDING', 'En attente')}>
+        <TouchableOpacity style={[styles.statCard, { borderLeftColor: '#f59e0b' }]} onPress={() => navigateToList('PENDING', 'Alertes en attente')}>
           <View style={styles.iconContainer}>
             <Ionicons name="time-outline" size={32} color="#f59e0b" />
           </View>
@@ -66,7 +66,7 @@ export default function DashboardScreen({ navigation }: any) {
         </TouchableOpacity>
 
         {/* Envoyés */}
-        <TouchableOpacity style={[styles.statCard, { borderLeftColor: '#10b981' }]} onPress={() => navigateToList('SENT', 'Envoyés')}>
+        <TouchableOpacity style={[styles.statCard, { borderLeftColor: '#10b981' }]} onPress={() => navigateToList('SENT', 'Alertes envoyées')}>
           <View style={styles.iconContainer}>
             <Ionicons name="checkmark-circle-outline" size={32} color="#10b981" />
           </View>
@@ -77,7 +77,7 @@ export default function DashboardScreen({ navigation }: any) {
         </TouchableOpacity>
 
         {/* Échecs */}
-        <TouchableOpacity style={[styles.statCard, { borderLeftColor: '#ef4444' }]} onPress={() => navigateToList('FAILED', 'Échecs')}>
+        <TouchableOpacity style={[styles.statCard, { borderLeftColor: '#ef4444' }]} onPress={() => navigateToList('FAILED', 'Alertes en échec')}>
           <View style={styles.iconContainer}>
             <Ionicons name="warning-outline" size={32} color="#ef4444" />
           </View>
